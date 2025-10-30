@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import * as XLSX from 'xlsx'
 
 type RowData = Record<string, unknown>
@@ -56,39 +56,50 @@ export function ExcelTable(): JSX.Element {
 	const [onlyValidPhones, setOnlyValidPhones] = useState(true)
 	const [searchName, setSearchName] = useState('')
 	const [searchPhone, setSearchPhone] = useState('')
-	const [sheetName, setSheetName] = useState<string>('')
+	const [activeTab, setActiveTab] = useState<'all' | 'invalid'>('all')
+	const [sourceFiles, setSourceFiles] = useState<string[]>([])
 	const fileInputRef = useRef<HTMLInputElement>(null)
 
-	function handleFile(file: File): void {
-		const reader = new FileReader()
-		reader.onload = (e) => {
-			const data = new Uint8Array(e.target?.result as ArrayBuffer)
-			const workbook = XLSX.read(data, { type: 'array' })
-			const firstSheet = workbook.SheetNames[0]
-			const sheet = workbook.Sheets[firstSheet]
-			const json: RowData[] = XLSX.utils.sheet_to_json(sheet, {
-				defval: '',
-				raw: false,
-				dateNF: 'dd/mm/yyyy hh:mm:ss',
-			})
-			const keys = json.length > 0 ? Object.keys(json[0]) : []
-			setSheetName(firstSheet)
-			setRows(json)
-			setHeaders(keys)
+	useEffect(() => {
+		async function loadAll(): Promise<void> {
+			try {
+				const modules = import.meta.glob('/src/data/**/*.{xlsx,xls}', { eager: true, as: 'url' }) as Record<string, string>
+				const fileUrls = Object.values(modules)
+				const fileNames = Object.keys(modules).map((p) => p.split('/').pop() || p)
+				setSourceFiles(fileNames)
+				const allRows: RowData[] = []
+				let masterHeaders: string[] | null = null
+				for (let i = 0; i < fileUrls.length; i++) {
+					const url = fileUrls[i]
+					const fileName = fileNames[i]
+					const res = await fetch(url)
+					const buf = await res.arrayBuffer()
+					const workbook = XLSX.read(new Uint8Array(buf), { type: 'array' })
+					const firstSheet = workbook.SheetNames[0]
+					const sheet = workbook.Sheets[firstSheet]
+					const json: RowData[] = XLSX.utils.sheet_to_json(sheet, {
+						defval: '',
+						raw: false,
+						dateNF: 'dd/mm/yyyy hh:mm:ss',
+					})
+					if (!masterHeaders && json.length > 0) masterHeaders = Object.keys(json[0])
+					for (const r of json) allRows.push({ ...r, __file: fileName, __sheet: firstSheet })
+				}
+				setRows(allRows)
+				setHeaders(masterHeaders ?? [])
+			} catch (err) {
+				console.error('Load excel error', err)
+			}
 		}
-		reader.readAsArrayBuffer(file)
-	}
+		loadAll()
+	}, [])
 
-	function onDrop(e: React.DragEvent<HTMLDivElement>): void {
-		e.preventDefault()
-		if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-			handleFile(e.dataTransfer.files[0])
-		}
-	}
-
-	function onFileChange(e: React.ChangeEvent<HTMLInputElement>): void {
-		const file = e.target.files?.[0]
-		if (file) handleFile(file)
+	function exportDisplayed(): void {
+		const exportRows = filteredRows.map(({ __file, __sheet, ...rest }) => rest)
+		const ws = XLSX.utils.json_to_sheet(exportRows)
+		const wb = XLSX.utils.book_new()
+		XLSX.utils.book_append_sheet(wb, ws, 'Data')
+		XLSX.writeFile(wb, 'export.xlsx')
 	}
 
 	const phoneKey = useMemo(() => {
@@ -101,7 +112,8 @@ export function ExcelTable(): JSX.Element {
 
 	const filteredRows = useMemo(() => {
 		return rows.filter((row) => {
-			const phonePass = onlyValidPhones ? isValidVietnamPhone10Digits(row[phoneKey ?? '']) : true
+			const validPhone = isValidVietnamPhone10Digits(row[phoneKey ?? ''])
+			const phonePass = activeTab === 'invalid' ? !validPhone : onlyValidPhones ? validPhone : true
 			const namePass = searchName
 				? normalizeVietnamese(String(row[nameKey ?? ''] ?? '')).includes(normalizeVietnamese(searchName))
 				: true
@@ -110,26 +122,21 @@ export function ExcelTable(): JSX.Element {
 			const phoneSearchPass = searchPhone ? phoneDigits.includes(phoneSearchNormalized) : true
 			return phonePass && namePass && phoneSearchPass
 		})
-	}, [rows, onlyValidPhones, searchName, searchPhone, phoneKey, nameKey])
+	}, [rows, onlyValidPhones, activeTab, searchName, searchPhone, phoneKey, nameKey])
 
 	return (
 		<div>
-			<div className="uploader" onDragOver={(e) => e.preventDefault()} onDrop={onDrop}>
-				<input
-					ref={fileInputRef}
-					id="file"
-					type="file"
-					accept=".xlsx,.xls"
-					onChange={onFileChange}
-					style={{ display: 'none' }}
-				/>
-				<button onClick={() => fileInputRef.current?.click()}>Chọn file Excel</button>
-				<span className="hint">hoặc kéo thả file vào đây</span>
+			<div className="uploader">
+				<span className="hint">Đang dùng các file từ src/data: {sourceFiles.join(', ') || '...'}</span>
 			</div>
 
 			{rows.length > 0 && (
 				<div className="controls">
 					<div className="row">
+						<div className="tabs">
+							<button className={activeTab === 'all' ? 'tab active' : 'tab'} onClick={() => setActiveTab('all')}>Tất cả</button>
+							<button className={activeTab === 'invalid' ? 'tab active' : 'tab'} onClick={() => setActiveTab('invalid')}>SĐT sai</button>
+						</div>
 						<label className="checkbox">
 							<input
 								type="checkbox"
@@ -139,7 +146,8 @@ export function ExcelTable(): JSX.Element {
 							<span>Chỉ hiển thị SĐT hợp lệ (10 số + đầu số nhà mạng)</span>
 						</label>
 						<div className="spacer" />
-						<div className="info">Sheet: <b>{sheetName}</b> • Tổng: {rows.length} • Hiển thị: {filteredRows.length}</div>
+						<button className="export" onClick={exportDisplayed}>Xuất Excel (dữ liệu đang hiển thị)</button>
+						<div className="info">Tổng: {rows.length} • Hiển thị: {filteredRows.length}</div>
 					</div>
 					<div className="row">
 						<input

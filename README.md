@@ -13,7 +13,9 @@ npm run preview
 ```
 
 ## Ghi chú
-- App tự đoán cột tên và cột số điện thoại theo tiêu đề.
-- Kéo thả file hoặc bấm "Chọn file Excel" để tải lên.
-- Bật tắt "Chỉ hiển thị SĐT hợp lệ (10 số)" để lọc nhanh.
+- App hiện tự động lấy tất cả file trong `src/data/**/*.{xlsx,xls}` (không cần sửa code).
+- Chỉ cần copy file vào `src/data/` rồi chạy/rebuild app.
+- Yêu cầu các file có cấu trúc cột giống nhau.
+- Tab “Tất cả” và “SĐT sai” để xem toàn bộ hoặc chỉ các dòng có SĐT không hợp lệ.
+- Nút “Xuất Excel (dữ liệu đang hiển thị)” sẽ tải xuống 1 file Excel chứa đúng dữ liệu bạn đang xem (đã áp dụng tìm kiếm/lọc/tab).
 

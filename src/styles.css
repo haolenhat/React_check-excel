@@ -21,7 +21,6 @@ h1 { margin: 0 0 4px; font-size: 28px; }
 .subtitle { margin: 0 0 16px; color: var(--muted); }
 
 .uploader { display: flex; align-items: center; gap: 12px; padding: 16px; border: 1px dashed #374151; border-radius: 10px; background: var(--panel); }
-.uploader button { background: var(--accent); color: #052e16; border: none; padding: 10px 14px; border-radius: 8px; font-weight: 600; cursor: pointer; }
 .uploader .hint { color: var(--muted); font-size: 14px; }
 
 .controls { margin: 16px 0 8px; display: flex; flex-direction: column; gap: 8px; }
@@ -30,6 +29,11 @@ h1 { margin: 0 0 4px; font-size: 28px; }
 .controls .spacer { flex: 1; }
 .controls .info { color: var(--muted); font-size: 14px; }
 .controls input { background: #0b1220; border: 1px solid #1f2937; color: var(--text); padding: 8px 10px; border-radius: 8px; width: 280px; }
+.controls .export { background: #22d3ee; color: #083344; border: 1px solid #0891b2; padding: 8px 12px; border-radius: 8px; cursor: pointer; margin-right: 8px; }
+
+.tabs { display: flex; gap: 8px; }
+.tab { background: #0b1220; color: var(--text); border: 1px solid #1f2937; padding: 8px 10px; border-radius: 8px; cursor: pointer; }
+.tab.active { background: var(--accent); color: #052e16; border-color: var(--accent); font-weight: 700; }
 
 .table-wrapper { overflow: auto; border: 1px solid #1f2937; border-radius: 10px; }
 table { width: 100%; border-collapse: collapse; min-width: 720px; }
