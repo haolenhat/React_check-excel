@@ -44,5 +44,28 @@ td.ok { color: var(--accent); font-weight: 600; }
 td.not-ok { color: var(--danger); font-weight: 600; }
 .digits { margin-left: 6px; color: var(--muted); font-weight: 400; }
 
+/* Responsive */
+@media (max-width: 1024px) {
+	.app { padding: 16px; }
+	.controls input { width: 220px; }
+}
+
+@media (max-width: 768px) {
+	h1 { font-size: 22px; }
+	.subtitle { font-size: 14px; }
+	.controls { gap: 12px; }
+	.controls .row { flex-wrap: wrap; align-items: flex-start; }
+	.controls input { width: 100%; }
+	.tabs { width: 100%; }
+	.table-wrapper { border-radius: 8px; }
+}
+
+@media (max-width: 480px) {
+	.app { padding: 12px; }
+	.uploader { padding: 12px; gap: 8px; }
+	.controls .export { width: 100%; margin: 8px 0 0; }
+	.controls .info { width: 100%; margin-top: 6px; }
+	thead th, tbody td { padding: 8px; }
+}
 
 
